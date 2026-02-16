@@ -15,9 +15,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "CartolaDash",
   description: "Estatísticas detalhadas do seu time no Cartola",
-  icons: {
-    icon: "/logo.png",
-  },
 };
 
 export default function RootLayout({

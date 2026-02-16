@@ -13,6 +13,7 @@ import {
   CartesianGrid,
   LabelList,
 } from "recharts";
+import posthog from "posthog-js";
 
 type TeamInfo = {
   team_id: number;
@@ -236,6 +237,15 @@ export default function TeamDashboardPage() {
         return;
       }
 
+      // ===== PostHog: início do carregamento =====
+      const start = performance.now();
+
+      posthog.capture("dashboard_viewed", {
+        teamId,
+        isHome,
+      });
+      // ==========================================
+
       try {
         const qs = new URLSearchParams({ team_id: String(teamId) });
         if (isHome !== "all") qs.set("is_home", isHome);
@@ -243,13 +253,40 @@ export default function TeamDashboardPage() {
         const res = await fetch(`/api/dashboard?${qs.toString()}`, { cache: "no-store" });
         const json = (await res.json().catch(() => null)) as DashboardResponse | null;
 
-        if (!res.ok || !json?.ok) throw new Error((json as any)?.error ?? "Falha ao carregar dashboard.");
+        if (!res.ok || !json?.ok) {
+          const message = (json as any)?.error ?? `HTTP ${res.status}`;
+          posthog.capture("dashboard_error", {
+            teamId,
+            isHome,
+            status: res.status,
+            message,
+          });
+          throw new Error(message ?? "Falha ao carregar dashboard.");
+        }
 
         if (!alive) return;
+
         setData(json);
+
+        posthog.capture("dashboard_loaded", {
+          teamId,
+          isHome,
+          load_time_ms: Math.round(performance.now() - start),
+        });
       } catch (e: any) {
         if (!alive) return;
-        setError(e?.message ?? "Erro ao carregar dashboard.");
+
+        const message = e?.message ?? "Erro ao carregar dashboard.";
+
+        // Se cair aqui sem ter passado pelo res.ok/json.ok (ex: erro de rede),
+        // ainda registramos:
+        posthog.capture("dashboard_error", {
+          teamId,
+          isHome,
+          message,
+        });
+
+        setError(message);
       } finally {
         if (!alive) return;
         setLoadingDash(false);

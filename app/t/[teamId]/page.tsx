@@ -10,7 +10,6 @@ import {
   Line,
   XAxis,
   YAxis,
-  Tooltip,
   CartesianGrid,
   LabelList,
 } from "recharts";
@@ -414,12 +413,7 @@ export default function TeamDashboardPage() {
     {/* sem pontilhado */}
     <XAxis type="number" axisLine tickLine={false} />
     <YAxis type="category" dataKey="position" axisLine tickLine={false} />
-    <Tooltip
-      formatter={(value: any) =>
-        typeof value === "number" ? value.toFixed(2) : value
-      }
-    />
-
+    
     {/* cor com mais contraste */}
     <Bar dataKey="avg_points" fill="#FF8300" isAnimationActive={false}>
       {/* rótulo com a média (2 casas) no lugar do "n" */}

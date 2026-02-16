@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 
 type TeamSearchItem = {
   id: number;
@@ -42,9 +43,14 @@ export default function HomePage() {
 
         if (!alive) return;
 
-        // aceita {teams: []} ou [] dependendo de como sua rota está
         const list = Array.isArray(data) ? data : data?.teams ?? [];
         setTeams(list);
+
+        posthog.capture("team_search", {
+          query: q.trim(),
+          results: list.lenght,
+        });
+
       } catch (e: any) {
         if (!alive) return;
         setError(e?.message ?? "Erro ao buscar times");
@@ -95,7 +101,15 @@ export default function HomePage() {
             <button
               key={t.id}
               className="w-full rounded-2xl border border-neutral-800 bg-neutral-900 p-4 text-left hover:border-neutral-700"
-              onClick={() => router.push(`/t/${t.id}`)}
+              onClick={() => {
+                posthog.capture("team_selected", {
+                teamId: t.id,
+                teamName: t.name,
+                hasBadge: Boolean(t.badge_url),
+              });
+              router.push(`/t/${t.id}`);
+            }}
+
             >
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950">

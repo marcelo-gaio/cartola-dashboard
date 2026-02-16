@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -31,7 +32,9 @@ export default function RootLayout({
       >
         {/* 👉 ENVOLVE O APP COM POSTHOG */}
         <Providers>
-          <PostHogPageView />
+          <Suspense fallback={null}>
+            <PostHogPageView />
+          </Suspense>
           {children}
         </Providers>
       </body>

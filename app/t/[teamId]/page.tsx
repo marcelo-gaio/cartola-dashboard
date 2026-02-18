@@ -45,6 +45,14 @@ type DashboardResponse = {
       by_position: { position_id: number; position: string; n: number; rate: number | null }[];
       total: { position_id: number; position: "TOT"; n: number; rate: number | null };
     };
+    top_players_by_position: {
+      position_id: number;
+      position: string;
+      atleta_name: string;
+      club_badge_url: string | null;
+      total_points: number | null;
+      avg_points: number | null;
+    }[];
   };
 };
 
@@ -363,6 +371,8 @@ export default function TeamDashboardPage() {
     ? [...data.metrics.offensive_efficiency.by_position, data.metrics.offensive_efficiency.total]
     : [];
 
+    const starsByPosition = data?.metrics.top_players_by_position ?? [];
+
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100">
       <div className="mx-auto max-w-4xl px-4 py-6">
@@ -589,6 +599,39 @@ export default function TeamDashboardPage() {
                 ))}
               </div>
               
+            </section>
+
+            <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+              <h2 className="text-base font-medium">Suas Estrelas</h2>
+              <div className="mt-2 text-xs text-neutral-400">
+                Jogadores que mais contribuíram em pontos por posição
+              </div>
+
+              <div className="mt-4 overflow-x-auto">
+                <div className="min-w-[620px] space-y-2">
+                  {starsByPosition.map((star) => (
+                    <div
+                      key={star.position}
+                      className="grid grid-cols-[56px_36px_minmax(180px,1fr)_110px_110px] items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm whitespace-nowrap"
+                    >
+                      <PosChip label={star.position} />
+                      <div className="h-8 w-8 overflow-hidden rounded-md border border-neutral-800 bg-neutral-900">
+                        {star.club_badge_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={star.club_badge_url} alt="" className="h-full w-full object-cover" />
+                        ) : null}
+                      </div>
+                      <div className="truncate text-neutral-100">{star.atleta_name || "—"}</div>
+                      <div className="text-right text-neutral-200">
+                        {star.total_points == null ? "—" : star.total_points.toFixed(2)}
+                      </div>
+                      <div className="text-right text-neutral-400">
+                        {star.avg_points == null ? "—" : star.avg_points.toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </section>
           </div>
         )}

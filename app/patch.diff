@@ -1,0 +1,53 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/app/page.tsx b/app/page.tsx
+index 0a8262334732403885e2b559701401fc37aa62da..de52c82f8b61d0a266baaa1d4ef2baa4d7440650 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -108,32 +108,44 @@ export default function HomePage() {
+                 hasBadge: Boolean(t.badge_url),
+               });
+               router.push(`/t/${t.id}`);
+             }}
+ 
+             >
+               <div className="flex items-center gap-3">
+                 <div className="h-10 w-10 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950">
+                   {t.badge_url ? (
+                     // eslint-disable-next-line @next/next/no-img-element
+                     <img src={t.badge_url} alt="" className="h-full w-full object-cover" />
+                   ) : null}
+                 </div>
+ 
+                 <div className="min-w-0">
+                   <div className="truncate text-base font-medium">{t.name}</div>
+                   <div className="truncate text-sm text-neutral-400">{t.cartoleiro ?? "—"}</div>
+                 </div>
+ 
+                 <div className="ml-auto text-xs text-neutral-500">abrir →</div>
+               </div>
+             </button>
+           ))}
+         </section>
+ 
++        <section className="mt-4 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
++          <h2 className="text-2xl font-semibold tracking-tight">Estatísticas disponíveis</h2>
++
++          <ul className="mt-3 space-y-2 text-sm text-neutral-200">
++            <li>✅ Média de pontos por posição + capitão</li>
++            <li>✅ Pontuação detalhada por tipo de scout</li>
++            <li>✅ Eficiência de SG por posição (% de jogadores que tiveram SG)</li>
++            <li>✅ Eficiência Ofensiva por posição (% de jogadores que tiveram G/A)</li>
++            <li>✅ Filtro de casa/fora</li>
++          </ul>
++        </section>
++
+         <footer className="mt-10 text-xs text-neutral-500">
+           © 2026 CartolaDash
+         </footer>
+       </div>
+     </main>
+   );
+ }
+ 
+EOF
+)

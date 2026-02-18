@@ -90,24 +90,13 @@ export default function HomePage() {
           </div>
         </div>
 
-        <section className="mt-4 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
-          <h2 className="text-2xl font-semibold tracking-tight">Estatísticas disponíveis</h2>
-
-          <ul className="mt-3 space-y-2 text-sm text-neutral-200">
-            <li>✅ Média de pontos por posição + capitão</li>
-            <li>✅ Pontuação detalhada por tipo de scout</li>
-            <li>✅ Eficiência de SG por posição (% de jogadores que tiveram SG)</li>
-            <li>✅ Eficiência Ofensiva por posição (% de jogadores que tiveram G/A)</li>
-            <li>✅ Filtro de casa/fora</li>
-          </ul>
-        </section>
-
         {error && (
           <div className="mt-4 rounded-2xl border border-red-900/50 bg-red-950/30 p-4 text-sm text-red-200">
             {error}
           </div>
         )}
 
+        {/* ✅ ALTERAÇÃO: resultados da busca vêm ANTES do quadro de estatísticas */}
         <section className="mt-4 space-y-2">
           {teams.map((t) => (
             <button
@@ -141,6 +130,21 @@ export default function HomePage() {
             </button>
           ))}
         </section>
+        {/* ✅ FIM ALTERAÇÃO */}
+
+        {/* ✅ ALTERAÇÃO: quadro de estatísticas movido para DEPOIS dos resultados */}
+        <section className="mt-4 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+          <h2 className="text-2xl font-semibold tracking-tight">Estatísticas disponíveis</h2>
+
+          <ul className="mt-3 space-y-2 text-sm text-neutral-200">
+            <li>✅ Média de pontos por posição + capitão</li>
+            <li>✅ Pontuação detalhada por tipo de scout</li>
+            <li>✅ Eficiência de SG por posição (% de jogadores que tiveram SG)</li>
+            <li>✅ Eficiência Ofensiva por posição (% de jogadores que tiveram G/A)</li>
+            <li>✅ Filtro de casa/fora</li>
+          </ul>
+        </section>
+        {/* ✅ FIM ALTERAÇÃO */}
 
         <footer className="mt-10 text-xs text-neutral-500">
           © 2026 CartolaDash

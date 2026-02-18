@@ -531,7 +531,7 @@ export default function TeamDashboardPage() {
 </div>
 
               <div className="mt-2 text-xs text-neutral-400">
-                Clique em um card para ver o detalhe por rodada.
+                Clique em um card para ver o detalhe por rodada
               </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-4">
@@ -572,7 +572,7 @@ export default function TeamDashboardPage() {
 </div>
 
               <div className="mt-2 text-xs text-neutral-400">
-                Clique em um card para ver o detalhe por rodada.
+                Clique em um card para ver o detalhe por rodada
               </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-5">

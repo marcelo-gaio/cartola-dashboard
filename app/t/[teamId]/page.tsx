@@ -348,6 +348,11 @@ export default function TeamDashboardPage() {
     [data?.metrics.points_by_scout]
   );
 
+  const scoutChartHeight = useMemo(
+    () => Math.max(280, scoutPoints.length * 34),
+    [scoutPoints.length]
+  );
+
   // SG cards: GOL LAT ZAG + TOT (TOT à direita)
   const sgCards = data
     ? [...data.metrics.sg_efficiency.by_position, data.metrics.sg_efficiency.total]
@@ -472,31 +477,30 @@ export default function TeamDashboardPage() {
               </div>
             </section>
 
-            {/* 7) Pontuação por scout (vertical) */}
+            {/* 7) Pontuação por scout (horizontal) */}
             <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
               <h2 className="text-base font-medium">Pontuação por scout</h2>
 
-              <div className="mt-4 h-[28rem]">
+              <div className="mt-4" style={{ height: `${scoutChartHeight}px` }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={scoutPoints}
-                    margin={{ left: 12, right: 12, top: 20, bottom: 68 }}
+                    layout="vertical"
+                    margin={{ left: 8, right: 20, top: 8, bottom: 8 }}
                   >
-                    <XAxis
+                    <XAxis type="number" axisLine tickLine={false} />
+                    <YAxis
                       type="category"
                       dataKey="scout"
                       axisLine
                       tickLine={false}
                       interval={0}
-                      angle={-35}
-                      textAnchor="end"
-                      height={70}
+                      width={36}
                     />
-                    <YAxis type="number" axisLine tickLine={false} />
                     <Bar dataKey="points" fill="#FF8300" isAnimationActive={false}>
                       <LabelList
                         dataKey="points"
-                        position="top"
+                        position="right"
                         formatter={(v: any) => (typeof v === "number" ? v.toFixed(2) : "")}
                       />
                     </Bar>

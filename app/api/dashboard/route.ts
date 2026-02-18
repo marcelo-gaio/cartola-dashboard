@@ -302,6 +302,7 @@ export async function GET(req: Request) {
       scout,
       points: scoutTotals.get(scout) ?? 0,
     }))
+    .filter(({ points }) => Math.abs(points) > 1e-9)
     .sort((a, b) => b.points - a.points);
 
   return NextResponse.json({

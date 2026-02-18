@@ -22,6 +22,24 @@ const POS_LABEL: Record<number, string> = {
   6: "TEC",
 };
 
+const SCOUT_POINTS: Record<string, number> = {
+  DS: 1.5,
+  FC: -0.3,
+  GC: -3.0,
+  CA: -1.0,
+  CV: -3.0,
+  FS: 0.5,
+  FT: 3.0,
+  FD: 1.2,
+  FF: 0.8,
+  G: 8,
+  I: -0.1,
+  PP: -4.0,
+  PC: -1.0,
+  OS: 1.0,
+  A: 5.0,
+};
+
 function isDefenderPosId(posId: number) {
   return posId === 1 || posId === 2 || posId === 3;
 }
@@ -103,7 +121,7 @@ export async function GET(req: Request) {
 
   let picksQuery = sb
     .from("picks")
-    .select("team_round_id, position_id, position_name, points, is_captain, is_home, had_sg, had_goal, had_assist")
+    .select("team_round_id, position_id, position_name, points, is_captain, is_home, had_sg, had_goal, had_assist, scouts")
     .eq("team_id", teamId);
 
   if (teamRoundIds.length) picksQuery = picksQuery.in("team_round_id", teamRoundIds);
@@ -125,6 +143,7 @@ export async function GET(req: Request) {
     had_sg: Boolean(p.had_sg),
     had_goal: Boolean(p.had_goal),
     had_assist: Boolean(p.had_assist),
+    scouts: p.scouts && typeof p.scouts === "object" ? p.scouts : null,
   }));
 
   // ---------
@@ -253,6 +272,33 @@ export async function GET(req: Request) {
     },
   };
 
+  // ---------
+  // PONTUAÇÃO POR SCOUT
+  // ---------
+  const scoutTotals = new Map<string, number>(
+    Object.keys(SCOUT_POINTS).map((scout) => [scout, 0])
+  );
+
+  for (const p of picks) {
+    const scouts = p.scouts;
+    if (!scouts || typeof scouts !== "object") continue;
+
+    for (const [scout, pointPerAction] of Object.entries(SCOUT_POINTS)) {
+      const rawCount = (scouts as Record<string, unknown>)[scout];
+      const count = typeof rawCount === "number" ? rawCount : Number(rawCount);
+      if (!Number.isFinite(count)) continue;
+
+      scoutTotals.set(scout, (scoutTotals.get(scout) ?? 0) + count * pointPerAction);
+    }
+  }
+
+  const scoutPoints = Object.keys(SCOUT_POINTS)
+    .map((scout) => ({
+      scout,
+      points: scoutTotals.get(scout) ?? 0,
+    }))
+    .sort((a, b) => b.points - a.points);
+
   return NextResponse.json({
     ok: true,
     team_id: teamId,
@@ -268,6 +314,7 @@ export async function GET(req: Request) {
     },
     metrics: {
       avg_points_by_position: [...avgByPos, capRow],
+      points_by_scout: scoutPoints,
       sg_efficiency: sgEfficiency,
       offensive_efficiency: offensiveEfficiency,
     },

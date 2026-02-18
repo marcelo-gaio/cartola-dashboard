@@ -36,6 +36,7 @@ type DashboardResponse = {
 
   metrics: {
     avg_points_by_position: { position_id: number; position: string; n: number; avg_points: number | null }[];
+    points_by_scout: { scout: string; points: number }[];
     sg_efficiency: {
       by_position: { position_id: number; position: string; n: number; rate: number | null }[];
       total: { position_id: number; position: "TOT"; n: number; rate: number | null };
@@ -342,6 +343,11 @@ export default function TeamDashboardPage() {
   [data?.metrics.avg_points_by_position]
 );
 
+  const scoutPoints = useMemo(
+    () => data?.metrics.points_by_scout ?? [],
+    [data?.metrics.points_by_scout]
+  );
+
   // SG cards: GOL LAT ZAG + TOT (TOT à direita)
   const sgCards = data
     ? [...data.metrics.sg_efficiency.by_position, data.metrics.sg_efficiency.total]
@@ -466,7 +472,32 @@ export default function TeamDashboardPage() {
               </div>
             </section>
 
-            {/* 7) SG */}
+            {/* 7) Pontuação por scout (horizontal) */}
+            <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+              <h2 className="text-base font-medium">Pontuação por scout</h2>
+
+              <div className="mt-4 h-[28rem]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={scoutPoints}
+                    layout="vertical"
+                    margin={{ left: 24, right: 24, top: 8, bottom: 8 }}
+                  >
+                    <XAxis type="number" axisLine tickLine={false} />
+                    <YAxis type="category" dataKey="scout" axisLine tickLine={false} width={40} />
+                    <Bar dataKey="points" fill="#FF8300" isAnimationActive={false}>
+                      <LabelList
+                        dataKey="points"
+                        position="right"
+                        formatter={(v: any) => (typeof v === "number" ? v.toFixed(2) : "")}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+
+            {/* 8) SG */}
             <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
               <div className="relative flex items-center gap-2">
   <h2 className="text-base font-medium">Eficiência de SG</h2>
@@ -507,7 +538,7 @@ export default function TeamDashboardPage() {
               </div>
             </section>
 
-            {/* 8) Ofensiva */}
+            {/* 9) Ofensiva */}
             <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
               <div className="relative flex items-center gap-2">
   <h2 className="text-base font-medium">Eficiência Ofensiva</h2>

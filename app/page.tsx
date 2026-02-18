@@ -141,6 +141,7 @@ export default function HomePage() {
             <li>✅ Pontuação detalhada por tipo de scout</li>
             <li>✅ Eficiência de SG por posição (% de jogadores que tiveram SG)</li>
             <li>✅ Eficiência Ofensiva por posição (% de jogadores que tiveram G/A)</li>
+            <li>✅ Suas Estrelas: jogadores que mais pontuaram, por posição</li>
             <li>✅ Filtro de casa/fora</li>
           </ul>
         </section>

@@ -1,342 +1,82 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/app/api/dashboard/route.ts b/app/api/dashboard/route.ts
-index 50dc7a56e01d64343fd7e32f37c0823aa333082d..e06355af0cf8aa2fc0b2ad20f95e4599bc9d6afe 100644
+index e06355a..71a7007 100644
 --- a/app/api/dashboard/route.ts
 +++ b/app/api/dashboard/route.ts
-@@ -1,28 +1,27 @@
- import { NextResponse } from "next/server";
- import { createClient } from "@supabase/supabase-js";
--import { M_PLUS_1 } from "next/font/google";
- 
- export const runtime = "nodejs";
- 
- function supabase() {
-   return createClient(
-     process.env.SUPABASE_URL!,
-     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-     { auth: { persistSession: false } }
-   );
- }
- 
- type PosId = 1 | 2 | 3 | 4 | 5 | 6; // 1 GOL, 2 LAT, 3 ZAG, 4 MEI, 5 ATA, 6 TEC
- 
- const POS_LABEL: Record<number, string> = {
-   1: "GOL",
-   2: "LAT",
-   3: "ZAG",
-   4: "MEI",
-   5: "ATA",
-   6: "TEC",
- };
- 
- const SCOUT_POINTS: Record<string, number> = {
-   DS: 1.5,
-   FC: -0.3,
-@@ -46,50 +45,67 @@ const SCOUT_POINTS: Record<string, number> = {
- };
- 
- function isDefenderPosId(posId: number) {
-   return posId === 1 || posId === 2 || posId === 3;
- }
- function isLinePosId(posId: number) {
-   return posId === 2 || posId === 3 || posId === 4 || posId === 5; // exclui GOL e TEC
- }
- 
- function makeRounds38() {
-   return Array.from({ length: 38 }, (_, i) => i + 1);
- }
- 
- function movingAvg(values: Array<number | null>, window = 3) {
-   // média móvel "trailing": rodada i usa últimas 'window' rodadas com valor != null
-   const out: Array<number | null> = [];
-   for (let i = 0; i < values.length; i++) {
-     const slice = values
-       .slice(Math.max(0, i - window + 1), i + 1)
-       .filter((v) => typeof v === "number") as number[];
-     out.push(slice.length ? slice.reduce((a, b) => a + b, 0) / slice.length : null);
-   }
-   return out;
- }
- 
-+function pickBadge(row: any): string | null {
-+  return (
-+    row?.badge_60 ??
-+    row?.badge_45 ??
-+    row?.badge_30 ??
-+    row?.badge_url ??
-+    row?.escudo_png ??
-+    row?.escudo_svg ??
-+    row?.url_escudo_png ??
-+    row?.url_escudo_svg ??
-+    row?.shield_url ??
-+    row?.shield_png ??
-+    row?.shield_svg ??
-+    null
-+  );
-+}
-+
- export async function GET(req: Request) {
-   const sb = supabase();
-   const { searchParams } = new URL(req.url);
- 
-   const teamId = Number(searchParams.get("team_id"));
-   if (!Number.isFinite(teamId) || teamId <= 0) {
-     return NextResponse.json({ ok: false, error: "missing/invalid team_id" }, { status: 400 });
-   }
- 
-   // filtros (vão afetar posição + SG + ofensiva)
-   const isHomeParam = searchParams.get("is_home"); // "true" | "false" | null
- 
-   // 1) time
-   const teamRes = await sb
-     .from("fantasy_teams")
-     .select("team_id, slug, name, cartoleiro_name, badge_url")
-     .eq("team_id", teamId)
-     .single();
- 
-   if (teamRes.error) {
-     return NextResponse.json({ ok: false, error: "team not found (import first)" }, { status: 404 });
-   }
- 
-   // 2) team_rounds
-   const trRes = await sb
-@@ -104,67 +120,70 @@ export async function GET(req: Request) {
- 
-   const teamRounds = trRes.data ?? [];
-   const byRoundTR = new Map<number, { id: number; points: number | null; patrimonio: number | null }>();
-   for (const r of teamRounds) {
-     byRoundTR.set(Number(r.round), {
-       id: Number(r.id),
-       points: typeof r.points === "number" ? r.points : null,
-       patrimonio: typeof r.patrimonio === "number" ? r.patrimonio : null,
-     });
-   }
- 
-   // totais
-   const totalPoints = teamRounds.reduce((acc, r) => acc + (typeof r.points === "number" ? r.points : 0), 0);
-   const patrimonioAtual =
-     [...teamRounds]
-       .reverse()
-       .map((r) => (typeof r.patrimonio === "number" ? r.patrimonio : null))
-       .find((v) => v != null) ?? null;
- 
-   // 3) picks (para métricas)
-   // importante: para métricas, usamos rodadas importadas (team_rounds.id)
-   const teamRoundIds = teamRounds.map((r) => r.id);
- 
-   let picksQuery = sb
-     .from("picks")
--    .select("team_round_id, position_id, position_name, points, is_captain, is_home, had_sg, had_goal, had_assist, scouts")
-+    .select("team_round_id, position_id, position_name, atleta_id, atleta_name, club_id, points, is_captain, is_home, had_sg, had_goal, had_assist, scouts")
-     .eq("team_id", teamId);
- 
-   if (teamRoundIds.length) picksQuery = picksQuery.in("team_round_id", teamRoundIds);
-   if (isHomeParam === "true") picksQuery = picksQuery.eq("is_home", true);
-   if (isHomeParam === "false") picksQuery = picksQuery.eq("is_home", false);
- 
-   const picksRes = await picksQuery;
- 
-   if (picksRes.error) {
-     return NextResponse.json({ ok: false, error: picksRes.error.message }, { status: 500 });
-   }
- 
-   const picks = (picksRes.data ?? []).map((p: any) => ({
-     team_round_id: Number(p.team_round_id),
-     position_id: Number(p.position_id),
-     position_name: String(p.position_name ?? ""),
-+    atleta_id: Number(p.atleta_id),
-+    atleta_name: String(p.atleta_name ?? ""),
-+    club_id: p.club_id == null ? null : Number(p.club_id),
-     points: typeof p.points === "number" ? (p.points as number) : null,
-     is_captain: Boolean(p.is_captain),
-     had_sg: Boolean(p.had_sg),
-     had_goal: Boolean(p.had_goal),
-     had_assist: Boolean(p.had_assist),
-     scouts: p.scouts && typeof p.scouts === "object" ? p.scouts : null,
-   }));
- 
-   // ---------
-   // SÉRIES (38 rodadas)
-   // ---------
-   const rounds38 = makeRounds38();
- 
-   const pointsPerRound: Array<number | null> = rounds38.map((rd) => byRoundTR.get(rd)?.points ?? null);
-   const pointsMA = movingAvg(pointsPerRound, 3);
- 
-   const pointsSeries = rounds38.map((rd, idx) => ({
-     round: rd,
-     points: pointsPerRound[idx],
-     moving_avg: pointsMA[idx],
-   }));
- 
-   const patrimonioSeries = rounds38.map((rd) => ({
-     round: rd,
-     patrimonio: byRoundTR.get(rd)?.patrimonio ?? null,
-@@ -255,74 +274,164 @@ export async function GET(req: Request) {
- 
-   for (const p of line) {
-     if (!offByPos[p.position_id]) offByPos[p.position_id] = { ok: 0, total: 0 };
-     offByPos[p.position_id].total += 1;
-     if (p.had_goal || p.had_assist) offByPos[p.position_id].ok += 1;
-   }
- 
-   const offTotOk = line.filter((p) => p.had_goal || p.had_assist).length;
-   const offTotN = line.length;
- 
-   const offensiveEfficiency = {
-     by_position: [5, 4, 2, 3].map((posId) => ({
-       position_id: posId,
-       position: POS_LABEL[posId],
-       n: offByPos[posId]?.total ?? 0,
-       rate: offByPos[posId]?.total ? (offByPos[posId].ok / offByPos[posId].total) : null,
-     })),
-     total: {
-       position_id: 0,
-       position: "TOT",
-       n: offTotN,
-       rate: offTotN ? offTotOk / offTotN : null,
-     },
-   };
- 
-+  // ---------
-+  // SUAS ESTRELAS (maior contribuição por posição)
-+  // ---------
-+  const starsAgg = new Map<string, {
-+    position_id: number;
-+    position: string;
-+    atleta_id: number;
-+    atleta_name: string;
-+    club_id: number | null;
-+    sum_points: number;
-+    n: number;
-+  }>();
-+
-+  for (const p of picks) {
-+    if (![1, 2, 3, 4, 5, 6].includes(p.position_id)) continue;
-+    if (!Number.isFinite(p.atleta_id) || !p.atleta_name) continue;
-+    if (typeof p.points !== "number") continue;
-+
-+    const key = `${p.position_id}:${p.atleta_id}`;
-+    const curr = starsAgg.get(key);
-+
-+    if (!curr) {
-+      starsAgg.set(key, {
-+        position_id: p.position_id,
-+        position: POS_LABEL[p.position_id] ?? `POS_${p.position_id}`,
-+        atleta_id: p.atleta_id,
-+        atleta_name: p.atleta_name,
-+        club_id: p.club_id,
-+        sum_points: p.points,
-+        n: 1,
-+      });
-+      continue;
-+    }
-+
-+    curr.sum_points += p.points;
-+    curr.n += 1;
-+    if (curr.club_id == null && p.club_id != null) curr.club_id = p.club_id;
-+  }
-+
-+  const clubIds = Array.from(
-+    new Set(
-+      [...starsAgg.values()]
-+        .map((s) => s.club_id)
-+        .filter((v): v is number => typeof v === "number")
-+    )
-+  );
-+
-+  const clubsMap = new Map<number, { badge_url: string | null }>();
-+  if (clubIds.length) {
-+    const clubsRes = await sb.from("clubs").select("*").in("id", clubIds);
-+    if (!clubsRes.error) {
-+      for (const c of clubsRes.data ?? []) {
-+        clubsMap.set(Number((c as any).id), { badge_url: pickBadge(c) });
-+      }
-+    }
-+  }
-+
-+  const starsByPos = [1, 2, 3, 4, 5, 6].map((posId) => {
-+    const best = [...starsAgg.values()]
-+      .filter((s) => s.position_id === posId)
-+      .sort((a, b) => {
-+        if (b.sum_points !== a.sum_points) return b.sum_points - a.sum_points;
-+        const avgA = a.n ? a.sum_points / a.n : 0;
-+        const avgB = b.n ? b.sum_points / b.n : 0;
-+        if (avgB !== avgA) return avgB - avgA;
-+        return a.atleta_name.localeCompare(b.atleta_name);
-+      })[0];
-+
-+    if (!best) {
-+      return {
-+        position_id: posId,
-+        position: POS_LABEL[posId],
-+        atleta_name: "—",
-+        club_badge_url: null,
-+        total_points: null,
-+        avg_points: null,
-+      };
-+    }
-+
-+    return {
-+      position_id: posId,
-+      position: POS_LABEL[posId],
-+      atleta_name: best.atleta_name,
-+      club_badge_url: best.club_id != null ? (clubsMap.get(best.club_id)?.badge_url ?? null) : null,
-+      total_points: best.sum_points,
-+      avg_points: best.n ? best.sum_points / best.n : null,
-+    };
-+  });
-+
-   // ---------
-   // PONTUAÇÃO POR SCOUT
-   // ---------
-   const scoutTotals = new Map<string, number>(
-     Object.keys(SCOUT_POINTS).map((scout) => [scout, 0])
-   );
- 
-   for (const p of picks) {
-     const scouts = p.scouts;
-     if (!scouts || typeof scouts !== "object") continue;
- 
-     for (const [scout, pointPerAction] of Object.entries(SCOUT_POINTS)) {
-       const rawCount = (scouts as Record<string, unknown>)[scout];
-       const count = typeof rawCount === "number" ? rawCount : Number(rawCount);
-       if (!Number.isFinite(count)) continue;
- 
-       scoutTotals.set(scout, (scoutTotals.get(scout) ?? 0) + count * pointPerAction);
+@@ -371,7 +371,6 @@ export async function GET(req: Request) {
+         atleta_name: "—",
+         club_badge_url: null,
+         total_points: null,
+-        avg_points: null,
+       };
      }
-   }
  
-   const scoutPoints = Object.keys(SCOUT_POINTS)
-     .map((scout) => ({
-       scout,
-       points: scoutTotals.get(scout) ?? 0,
-     }))
-     .filter(({ points }) => Math.abs(points) > 1e-9)
-     .sort((a, b) => b.points - a.points);
- 
-   return NextResponse.json({
-     ok: true,
-     team_id: teamId,
-     team: teamRes.data,
-     filters: { is_home: isHomeParam },
-     totals: {
-       points_total: totalPoints,
-       patrimonio_current: patrimonioAtual,
-     },
-     series: {
-       points: pointsSeries,      // 38 rodadas: bar (points) + line (moving_avg)
-       patrimonio: patrimonioSeries, // 38 rodadas: bar
-     },
-     metrics: {
-       avg_points_by_position: [...avgByPos, capRow],
-       points_by_scout: scoutPoints,
-       sg_efficiency: sgEfficiency,
-       offensive_efficiency: offensiveEfficiency,
-+      top_players_by_position: starsByPos,
-     },
+@@ -381,7 +380,6 @@ export async function GET(req: Request) {
+       atleta_name: best.atleta_name,
+       club_badge_url: best.club_id != null ? (clubsMap.get(best.club_id)?.badge_url ?? null) : null,
+       total_points: best.sum_points,
+-      avg_points: best.n ? best.sum_points / best.n : null,
+     };
    });
- }
  
-EOF
-)
+diff --git a/app/t/[teamId]/page.tsx b/app/t/[teamId]/page.tsx
+index de7bdbf..7bbad3c 100644
+--- a/app/t/[teamId]/page.tsx
++++ b/app/t/[teamId]/page.tsx
+@@ -51,7 +51,6 @@ type DashboardResponse = {
+       atleta_name: string;
+       club_badge_url: string | null;
+       total_points: number | null;
+-      avg_points: number | null;
+     }[];
+   };
+ };
+@@ -607,30 +606,26 @@ export default function TeamDashboardPage() {
+                 Jogadores que mais contribuíram em pontos por posição
+               </div>
+ 
+-              <div className="mt-4 overflow-x-auto">
+-                <div className="min-w-[620px] space-y-2">
+-                  {starsByPosition.map((star) => (
+-                    <div
+-                      key={star.position}
+-                      className="grid grid-cols-[56px_36px_minmax(180px,1fr)_110px_110px] items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm whitespace-nowrap"
+-                    >
+-                      <PosChip label={star.position} />
+-                      <div className="h-8 w-8 overflow-hidden rounded-md border border-neutral-800 bg-neutral-900">
+-                        {star.club_badge_url ? (
+-                          // eslint-disable-next-line @next/next/no-img-element
+-                          <img src={star.club_badge_url} alt="" className="h-full w-full object-cover" />
+-                        ) : null}
+-                      </div>
+-                      <div className="truncate text-neutral-100">{star.atleta_name || "—"}</div>
+-                      <div className="text-right text-neutral-200">
+-                        {star.total_points == null ? "—" : star.total_points.toFixed(2)}
+-                      </div>
+-                      <div className="text-right text-neutral-400">
+-                        {star.avg_points == null ? "—" : star.avg_points.toFixed(2)}
+-                      </div>
++              <div className="mt-4 space-y-2">
++                {starsByPosition.map((star) => (
++                  <div
++                    key={star.position}
++                    className="grid grid-cols-[50px_30px_minmax(0,1fr)_76px] items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950 px-2.5 py-2 text-xs sm:grid-cols-[56px_36px_minmax(0,1fr)_92px] sm:px-3 sm:text-sm"
++                  >
++                    <PosChip label={star.position} />
++                    <div className="h-7 w-7 overflow-hidden rounded-md border border-neutral-800 bg-neutral-900 sm:h-8 sm:w-8">
++                      {star.club_badge_url ? (
++                        // eslint-disable-next-line @next/next/no-img-element
++                        <img src={star.club_badge_url} alt="" className="h-full w-full object-cover" />
++                      ) : null}
+                     </div>
+-                  ))}
+-                </div>
++                    <div className="truncate text-neutral-100">{star.atleta_name || "—"}</div>
++                    <div className="text-right font-medium text-neutral-200">
++                      {star.total_points == null ? "—" : star.total_points.toFixed(2)}
++                      <span className="ml-1 text-[11px] text-neutral-500 sm:text-xs">pts</span>
++                    </div>
++                  </div>
++                ))}
+               </div>
+             </section>
+           </div>

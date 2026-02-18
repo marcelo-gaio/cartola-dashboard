@@ -371,7 +371,6 @@ export async function GET(req: Request) {
         atleta_name: "—",
         club_badge_url: null,
         total_points: null,
-        avg_points: null,
       };
     }
 
@@ -381,7 +380,6 @@ export async function GET(req: Request) {
       atleta_name: best.atleta_name,
       club_badge_url: best.club_id != null ? (clubsMap.get(best.club_id)?.badge_url ?? null) : null,
       total_points: best.sum_points,
-      avg_points: best.n ? best.sum_points / best.n : null,
     };
   });
 

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { M_PLUS_1 } from "next/font/google";
 
 export const runtime = "nodejs";
 
@@ -68,6 +67,23 @@ function movingAvg(values: Array<number | null>, window = 3) {
   return out;
 }
 
+function pickBadge(row: any): string | null {
+  return (
+    row?.badge_60 ??
+    row?.badge_45 ??
+    row?.badge_30 ??
+    row?.badge_url ??
+    row?.escudo_png ??
+    row?.escudo_svg ??
+    row?.url_escudo_png ??
+    row?.url_escudo_svg ??
+    row?.shield_url ??
+    row?.shield_png ??
+    row?.shield_svg ??
+    null
+  );
+}
+
 export async function GET(req: Request) {
   const sb = supabase();
   const { searchParams } = new URL(req.url);
@@ -126,7 +142,7 @@ export async function GET(req: Request) {
 
   let picksQuery = sb
     .from("picks")
-    .select("team_round_id, position_id, position_name, points, is_captain, is_home, had_sg, had_goal, had_assist, scouts")
+    .select("team_round_id, position_id, position_name, atleta_id, atleta_name, club_id, points, is_captain, is_home, had_sg, had_goal, had_assist, scouts")
     .eq("team_id", teamId);
 
   if (teamRoundIds.length) picksQuery = picksQuery.in("team_round_id", teamRoundIds);
@@ -143,6 +159,9 @@ export async function GET(req: Request) {
     team_round_id: Number(p.team_round_id),
     position_id: Number(p.position_id),
     position_name: String(p.position_name ?? ""),
+    atleta_id: Number(p.atleta_id),
+    atleta_name: String(p.atleta_name ?? ""),
+    club_id: p.club_id == null ? null : Number(p.club_id),
     points: typeof p.points === "number" ? (p.points as number) : null,
     is_captain: Boolean(p.is_captain),
     had_sg: Boolean(p.had_sg),
@@ -278,6 +297,95 @@ export async function GET(req: Request) {
   };
 
   // ---------
+  // SUAS ESTRELAS (maior contribuição por posição)
+  // ---------
+  const starsAgg = new Map<string, {
+    position_id: number;
+    position: string;
+    atleta_id: number;
+    atleta_name: string;
+    club_id: number | null;
+    sum_points: number;
+    n: number;
+  }>();
+
+  for (const p of picks) {
+    if (![1, 2, 3, 4, 5, 6].includes(p.position_id)) continue;
+    if (!Number.isFinite(p.atleta_id) || !p.atleta_name) continue;
+    if (typeof p.points !== "number") continue;
+
+    const key = `${p.position_id}:${p.atleta_id}`;
+    const curr = starsAgg.get(key);
+
+    if (!curr) {
+      starsAgg.set(key, {
+        position_id: p.position_id,
+        position: POS_LABEL[p.position_id] ?? `POS_${p.position_id}`,
+        atleta_id: p.atleta_id,
+        atleta_name: p.atleta_name,
+        club_id: p.club_id,
+        sum_points: p.points,
+        n: 1,
+      });
+      continue;
+    }
+
+    curr.sum_points += p.points;
+    curr.n += 1;
+    if (curr.club_id == null && p.club_id != null) curr.club_id = p.club_id;
+  }
+
+  const clubIds = Array.from(
+    new Set(
+      [...starsAgg.values()]
+        .map((s) => s.club_id)
+        .filter((v): v is number => typeof v === "number")
+    )
+  );
+
+  const clubsMap = new Map<number, { badge_url: string | null }>();
+  if (clubIds.length) {
+    const clubsRes = await sb.from("clubs").select("*").in("id", clubIds);
+    if (!clubsRes.error) {
+      for (const c of clubsRes.data ?? []) {
+        clubsMap.set(Number((c as any).id), { badge_url: pickBadge(c) });
+      }
+    }
+  }
+
+  const starsByPos = [1, 2, 3, 4, 5, 6].map((posId) => {
+    const best = [...starsAgg.values()]
+      .filter((s) => s.position_id === posId)
+      .sort((a, b) => {
+        if (b.sum_points !== a.sum_points) return b.sum_points - a.sum_points;
+        const avgA = a.n ? a.sum_points / a.n : 0;
+        const avgB = b.n ? b.sum_points / b.n : 0;
+        if (avgB !== avgA) return avgB - avgA;
+        return a.atleta_name.localeCompare(b.atleta_name);
+      })[0];
+
+    if (!best) {
+      return {
+        position_id: posId,
+        position: POS_LABEL[posId],
+        atleta_name: "—",
+        club_badge_url: null,
+        total_points: null,
+        avg_points: null,
+      };
+    }
+
+    return {
+      position_id: posId,
+      position: POS_LABEL[posId],
+      atleta_name: best.atleta_name,
+      club_badge_url: best.club_id != null ? (clubsMap.get(best.club_id)?.badge_url ?? null) : null,
+      total_points: best.sum_points,
+      avg_points: best.n ? best.sum_points / best.n : null,
+    };
+  });
+
+  // ---------
   // PONTUAÇÃO POR SCOUT
   // ---------
   const scoutTotals = new Map<string, number>(
@@ -323,6 +431,7 @@ export async function GET(req: Request) {
       points_by_scout: scoutPoints,
       sg_efficiency: sgEfficiency,
       offensive_efficiency: offensiveEfficiency,
+      top_players_by_position: starsByPos,
     },
   });
 }

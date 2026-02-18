@@ -444,9 +444,9 @@ export default function TeamDashboardPage() {
                     value={isHome}
                     onChange={(e) => setIsHome(e.target.value as any)}
                   >
-                    <option value="all">Casa+Fora</option>
-                    <option value="true">Só casa</option>
-                    <option value="false">Só fora</option>
+                    <option value="all">Total</option>
+                    <option value="true">Casa</option>
+                    <option value="false">Fora</option>
                   </select>
                 </div>
               </div>
@@ -530,6 +530,9 @@ export default function TeamDashboardPage() {
   )}
 </div>
 
+              <div className="mt-2 text-xs text-neutral-400">
+                Clique em um card para ver o detalhe por rodada.
+              </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-4">
                 {sgCards.map((c: any) => (
@@ -545,9 +548,6 @@ export default function TeamDashboardPage() {
                 ))}
               </div>
 
-              <div className="mt-2 text-xs text-neutral-400">
-                Clique em um card para ver o detalhe por rodada.
-              </div>
             </section>
 
             {/* 9) Ofensiva */}
@@ -571,6 +571,10 @@ export default function TeamDashboardPage() {
   )}
 </div>
 
+              <div className="mt-2 text-xs text-neutral-400">
+                Clique em um card para ver o detalhe por rodada.
+              </div>
+
               <div className="mt-4 grid gap-3 sm:grid-cols-5">
                 {offCards.map((c: any) => (
                   <button
@@ -584,10 +588,7 @@ export default function TeamDashboardPage() {
                   </button>
                 ))}
               </div>
-
-              <div className="mt-2 text-xs text-neutral-400">
-                Clique em um card para ver o detalhe por rodada.
-              </div>
+              
             </section>
           </div>
         )}

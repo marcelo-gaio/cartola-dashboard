@@ -93,7 +93,7 @@ function renderOutsideBarLabel(props: RechartsLabelProps) {
 
   return (
     <text
-      x={x + width + 8}
+      x={x + width + 16}
       y={y + height / 2}
       fill="#d4d4d8"
       fontSize={12}
@@ -116,7 +116,7 @@ function renderScoutBarLabel(props: RechartsLabelProps) {
 
   return (
     <text
-      x={x + width + 8}
+      x={x + width + 16}
       y={y + height / 2}
       fill="#d4d4d8"
       fontSize={12}

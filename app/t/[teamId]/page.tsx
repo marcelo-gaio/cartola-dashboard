@@ -13,6 +13,7 @@ import {
   CartesianGrid,
   LabelList,
 } from "recharts";
+import type { Props as RechartsLabelProps } from "recharts/types/component/Label";
 import posthog from "posthog-js";
 
 type TeamInfo = {
@@ -77,8 +78,16 @@ function formatChartValue(value: unknown) {
   return typeof value === "number" ? value.toFixed(2) : "";
 }
 
-function renderOutsideBarLabel(props: { x?: number; y?: number; width?: number; height?: number; value?: unknown }) {
-  const { x = 0, y = 0, width = 0, height = 0, value } = props;
+function toChartNumber(value: number | string | undefined) {
+  return typeof value === "number" ? value : Number(value ?? 0);
+}
+
+function renderOutsideBarLabel(props: RechartsLabelProps) {
+  const x = toChartNumber(props.x);
+  const y = toChartNumber(props.y);
+  const width = toChartNumber(props.width);
+  const height = toChartNumber(props.height);
+  const value = props.value;
   const label = formatChartValue(value);
   if (!label) return null;
 
@@ -96,8 +105,12 @@ function renderOutsideBarLabel(props: { x?: number; y?: number; width?: number; 
   );
 }
 
-function renderScoutBarLabel(props: { x?: number; y?: number; width?: number; height?: number; value?: unknown }) {
-  const { x = 0, y = 0, width = 0, height = 0, value } = props;
+function renderScoutBarLabel(props: RechartsLabelProps) {
+  const x = toChartNumber(props.x);
+  const y = toChartNumber(props.y);
+  const width = toChartNumber(props.width);
+  const height = toChartNumber(props.height);
+  const value = props.value;
   const numericValue = typeof value === "number" ? value : null;
   const label = formatChartValue(value);
   if (numericValue == null || !label) return null;

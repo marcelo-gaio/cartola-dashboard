@@ -111,20 +111,16 @@ function renderScoutBarLabel(props: RechartsLabelProps) {
   const width = toChartNumber(props.width);
   const height = toChartNumber(props.height);
   const value = props.value;
-  const numericValue = typeof value === "number" ? value : null;
   const label = formatChartValue(value);
-  if (numericValue == null || !label) return null;
-
-  const isNegative = numericValue < 0;
-  const labelX = isNegative ? x - 8 : x + width + 8;
+  if (!label) return null;
 
   return (
     <text
-      x={labelX}
+      x={x + width + 8}
       y={y + height / 2}
       fill="#d4d4d8"
       fontSize={12}
-      textAnchor={isNegative ? "end" : "start"}
+      textAnchor="start"
       dominantBaseline="middle"
     >
       {label}

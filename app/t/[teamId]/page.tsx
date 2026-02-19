@@ -73,6 +73,52 @@ function num2(v: number | null) {
   return v.toFixed(2);
 }
 
+function formatChartValue(value: unknown) {
+  return typeof value === "number" ? value.toFixed(2) : "";
+}
+
+function renderOutsideBarLabel(props: { x?: number; y?: number; width?: number; height?: number; value?: unknown }) {
+  const { x = 0, y = 0, width = 0, height = 0, value } = props;
+  const label = formatChartValue(value);
+  if (!label) return null;
+
+  return (
+    <text
+      x={x + width + 8}
+      y={y + height / 2}
+      fill="#d4d4d8"
+      fontSize={12}
+      textAnchor="start"
+      dominantBaseline="middle"
+    >
+      {label}
+    </text>
+  );
+}
+
+function renderScoutBarLabel(props: { x?: number; y?: number; width?: number; height?: number; value?: unknown }) {
+  const { x = 0, y = 0, width = 0, height = 0, value } = props;
+  const numericValue = typeof value === "number" ? value : null;
+  const label = formatChartValue(value);
+  if (numericValue == null || !label) return null;
+
+  const isNegative = numericValue < 0;
+  const labelX = isNegative ? x - 8 : x + width + 8;
+
+  return (
+    <text
+      x={labelX}
+      y={y + height / 2}
+      fill="#d4d4d8"
+      fontSize={12}
+      textAnchor={isNegative ? "end" : "start"}
+      dominantBaseline="middle"
+    >
+      {label}
+    </text>
+  );
+}
+
 function PosChip({ label }: { label: string }) {
   return (
     <span className="inline-flex items-center rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-1 text-xs text-neutral-300">
@@ -465,7 +511,7 @@ export default function TeamDashboardPage() {
   <BarChart
     data={posAvg}
     layout="vertical"
-    margin={{ left: 24, right: 24, top: 8, bottom: 8 }}
+    margin={{ left: 24, right: 56, top: 8, bottom: 8 }}
   >
     {/* sem pontilhado */}
     <XAxis type="number" axisLine tickLine={false} />
@@ -473,12 +519,7 @@ export default function TeamDashboardPage() {
     
     {/* cor com mais contraste */}
     <Bar dataKey="avg_points" fill="#FF8300" isAnimationActive={false}>
-      {/* rótulo com a média (2 casas) no lugar do "n" */}
-      <LabelList
-        dataKey="avg_points"
-        position="right"
-        formatter={(v: any) => (typeof v === "number" ? v.toFixed(2) : "")}
-      />
+      <LabelList dataKey="avg_points" content={renderOutsideBarLabel} />
     </Bar>
   </BarChart>
 </ResponsiveContainer>
@@ -495,7 +536,7 @@ export default function TeamDashboardPage() {
                   <BarChart
                     data={scoutPoints}
                     layout="vertical"
-                    margin={{ left: 8, right: 20, top: 8, bottom: 8 }}
+                    margin={{ left: 12, right: 56, top: 8, bottom: 8 }}
                   >
                     <XAxis type="number" axisLine tickLine={false} />
                     <YAxis
@@ -507,11 +548,7 @@ export default function TeamDashboardPage() {
                       width={36}
                     />
                     <Bar dataKey="points" fill="#FF8300" isAnimationActive={false}>
-                      <LabelList
-                        dataKey="points"
-                        position="right"
-                        formatter={(v: any) => (typeof v === "number" ? v.toFixed(2) : "")}
-                      />
+                      <LabelList dataKey="points" content={renderScoutBarLabel} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>

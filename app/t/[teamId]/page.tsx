@@ -93,7 +93,7 @@ function renderOutsideBarLabel(props: RechartsLabelProps) {
 
   return (
     <text
-      x={x + width + 16}
+      x={x + width + 8}
       y={y + height / 2}
       fill="#d4d4d8"
       fontSize={12}
@@ -111,16 +111,20 @@ function renderScoutBarLabel(props: RechartsLabelProps) {
   const width = toChartNumber(props.width);
   const height = toChartNumber(props.height);
   const value = props.value;
+  const numericValue = typeof value === "number" ? value : null;
   const label = formatChartValue(value);
-  if (!label) return null;
+  if (numericValue == null || !label) return null;
+
+  const isNegative = numericValue < 0;
+  const labelX = isNegative ? x - 8 : x + width + 8;
 
   return (
     <text
-      x={x + width + 16}
+      x={labelX}
       y={y + height / 2}
       fill="#d4d4d8"
       fontSize={12}
-      textAnchor="start"
+      textAnchor={isNegative ? "end" : "start"}
       dominantBaseline="middle"
     >
       {label}
